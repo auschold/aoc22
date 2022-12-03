@@ -11,6 +11,15 @@ fun main() {
         .sumOf { it.priority() }
 
     println(sumOfPriorities)
+
+
+    val sumOfBadgePriorities = file.readLines()
+        .map { parseRucksackFromInput(it) }
+        .windowed(size = 3, step = 3)
+        .map { commonItemInAllRucksacks(it) }
+        .sumOf { it.priority() }
+
+    println(sumOfBadgePriorities)
 }
 
 class Rucksack(val firstCompartment: Set<Item>, val secondCompartment: Set<Item>) {
@@ -24,6 +33,12 @@ data class Item(val id: Char) {
         else -> error("Unexpected input '$id'")
     }
 }
+
+private fun commonItemInAllRucksacks(rucksacks: Iterable<Rucksack>) =
+    rucksacks
+        .map { it.firstCompartment.plus(it.secondCompartment).toSet() }
+        .reduce { acc, items -> acc.intersect(items) }
+        .single()
 
 private fun parseRucksackFromInput(line: String): Rucksack {
     val firstHalf = line.substring(0, line.length / 2)
