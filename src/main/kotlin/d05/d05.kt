@@ -51,10 +51,14 @@ class ShipCargo {
         cargoStacks.getOrPut(stackNo) { Stack<String>() }
 
     fun execute(instruction: Instruction) {
+        val poppedItems = ArrayList<String>()
+
         for (i in 1..instruction.amount) {
-            val poppedItem = stack(instruction.sourceStack).pop()
-            stack(instruction.targetStack).push(poppedItem)
+            poppedItems.add(stack(instruction.sourceStack).pop())
         }
+
+        poppedItems.reversed()
+            .forEach { stack(instruction.targetStack).push(it) }
     }
 
     fun topOfAllStacks() =
