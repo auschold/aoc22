@@ -1,17 +1,36 @@
 package d07
 
 import java.io.File
-import java.util.Stack
-import java.util.TreeMap
-import kotlin.math.max
 
 fun main() {
     val file = File("src/main/resources/d07/input.txt")
 
     val rootFolder = parseTerminalOutput(file.readLines())
+
     val folderSmaller100000 = folderSmallerThan(rootFolder, 100000L)
     println(folderSmaller100000.sumOf { totalSizeOf(it) })
+
+    val totalSpace = 70000000
+    val minimumFreeSpace = 30000000
+    val currentlyFreeSpace = totalSpace - totalSizeOf(rootFolder)
+    val spaceToFree = minimumFreeSpace - currentlyFreeSpace
+    val bestCandidateForDeletion = findSmallestFolderBiggerThan(rootFolder, spaceToFree)
+    println(bestCandidateForDeletion.second)
 }
+
+private fun findSmallestFolderBiggerThan(root: FolderEntry, minimumSize: Long): Pair<FolderEntry, Long> {
+    var bestCandidate : Pair<FolderEntry, Long>? = null
+
+    root.accept { folder ->
+        val folderSize = totalSizeOf(folder)
+        if (folderSize > minimumSize && bestCandidate?.let { it.second > folderSize } != false) {
+            bestCandidate = Pair(folder, folderSize)
+        }
+    }
+
+    return bestCandidate!!
+}
+
 
 private fun folderSmallerThan(root: FolderEntry, maxSize: Long): List<FolderEntry> {
     val result = ArrayList<FolderEntry>()
