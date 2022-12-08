@@ -8,40 +8,75 @@ fun main() {
     val topology = TreeTopology.from(file.readText())
     println(topology)
 
-    var visibleTrees = 0
-    for (row in 0..topology.numberOfRows()) {
-        for (col in 0 .. topology.numberOfCols()) {
-            if (topology.isTreeVisibleFromOutside(Coord(row, col))) visibleTrees++
-        }
-    }
+    val visibleTrees = topology.allCoords()
+        .map { topology.isTreeVisibleFromOutside(it) }
+        .count { it }
     println(visibleTrees)
+
+    val maximumScoreOfVisibleTrees = topology.allCoords()
+        .maxOfOrNull { topology.scoreOfVisibleTreesFrom(it) }
+    println(maximumScoreOfVisibleTrees)
 }
 
 private class TreeTopology(trees : List<List<Int>>) {
     private val trees: List<List<Int>> = trees
+
+    fun scoreOfVisibleTreesFrom(startCoord: Coord) =
+        ViewDirection.values()
+            .map { numberOfVisibleTreesInLineOfSight(startCoord, it) }
+            .reduce { acc, i -> acc * i }
+
+    private fun numberOfVisibleTreesInLineOfSight(startCoord: Coord, viewDirection: ViewDirection): Int{
+        val startTreeHeight = height(startCoord)
+        val treeHeightsInLineOfSight = coordsInLineOfSightFromTarget(startCoord, viewDirection)
+            .map { height(it) }
+            .toList()
+        val indexOfFirstBlockingTree = treeHeightsInLineOfSight.indexOfFirst { it >= startTreeHeight }
+        return if (indexOfFirstBlockingTree < 0) {
+            treeHeightsInLineOfSight.size
+        } else {
+            indexOfFirstBlockingTree + 1
+        }
+    }
 
     fun isTreeVisibleFromOutside(coord: Coord) =
         ViewDirection.values()
             .map { isTreeVisibleFrom(coord, it) }
             .any { it }
 
-    fun isTreeVisibleFrom(coord: Coord, viewDirection: ViewDirection): Boolean {
+    private fun isTreeVisibleFrom(coord: Coord, viewDirection: ViewDirection): Boolean {
         val targetHeight = height(coord)
-        val anyTreeInLineOfSightAtLeastSameHeight = coordsInLineOfSight(coord, viewDirection)
+        val anyTreeInLineOfSightAtLeastSameHeight = coordsInLineOfSightFromOutside(coord, viewDirection)
             .map { height(it) }
             .any { it >= targetHeight }
         return !anyTreeInLineOfSightAtLeastSameHeight
     }
 
-    fun coordsInLineOfSight(targetCoord: Coord, viewDirection: ViewDirection) =
+    fun coordsInLineOfSightFromOutside(targetCoord: Coord, viewDirection: ViewDirection) =
         generateSequence(viewDirection.borderCoordinateFunction.invoke(targetCoord, this)) { last ->
             viewDirection.stepFunction.invoke(last, this)
         }.takeWhile { it != targetCoord }
+
+    fun coordsInLineOfSightFromTarget(startCoord: Coord, viewDirection: ViewDirection) =
+        coordsInLineOfSightFromOutside(startCoord, viewDirection)
+            .toList()
+            .reversed()
+            .asSequence()
 
     fun numberOfRows() = trees.size - 1
     fun numberOfCols() = trees.first().size - 1
 
     fun height(coord: Coord) = trees[coord.row][coord.col]
+
+    fun allCoords(): List<Coord> {
+        val coords = ArrayList<Coord>()
+        for (row in 0..numberOfRows()) {
+            for (col in 0 .. numberOfCols()) {
+                coords.add(Coord(row, col))
+            }
+        }
+        return coords
+    }
 
     override fun toString(): String =
         trees.map { row ->
