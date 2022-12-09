@@ -16,12 +16,14 @@ fun main() {
 }
 
 class TrackingQuantumGrid {
-    private var headCoord = Coord(0,0)
-    private var tailCoord = Coord(0, 0)
+    private val ropeSectionCoords = ArrayList<Coord>()
     private val tailObservedAt = HashSet<Coord>()
 
     init {
-        tailObservedAt.add(tailCoord)
+        for (i in 0..9) {
+            ropeSectionCoords.add(Coord(0, 0))
+        }
+        tailObservedAt.add(tailCoord())
     }
 
     fun moveHead(instruction: String) {
@@ -29,52 +31,43 @@ class TrackingQuantumGrid {
 
         for (i in 1 .. steps.toInt()) {
             moveHeadSingleStep(direction)
-            moveTailTowardsHead()
+            moveTailsTowardsAncestor()
         }
     }
 
     private fun moveHeadSingleStep(direction: String) {
-        headCoord = when (direction) {
-            "R" -> Coord(headCoord.x + 1, headCoord.y)
-            "L" -> Coord(headCoord.x - 1, headCoord.y)
-            "U" -> Coord(headCoord.x, headCoord.y + 1)
-            "D" -> Coord(headCoord.x, headCoord.y - 1)
+        val head = headCoord()
+        val newHead = when (direction) {
+            "R" -> Coord(head.x + 1, head.y)
+            "L" -> Coord(head.x - 1, head.y)
+            "U" -> Coord(head.x, head.y + 1)
+            "D" -> Coord(head.x, head.y - 1)
             else -> error("Unknown direction $direction")
         }
+        ropeSectionCoords[0] = newHead
     }
 
-    private fun moveTailTowardsHead() {
-        if (tailCoord.isAdjacentTo(headCoord)) return
-
-        val distanceX = headCoord.x - tailCoord.x
-        val distanceY = headCoord.y - tailCoord.y
-
-        tailCoord = Coord(tailCoord.x + distanceX.sign, tailCoord.y + distanceY.sign)
-        tailObservedAt.add(tailCoord)
+    private fun moveTailsTowardsAncestor() {
+        for (i in 1..9) moveTailsTowardsAncestor(i)
+        tailObservedAt.add(tailCoord())
     }
+
+    private fun moveTailsTowardsAncestor(index: Int) {
+        val ancestor = ropeSectionCoords[index - 1]
+        val node = ropeSectionCoords[index]
+        if (node.isAdjacentTo(ancestor)) return
+
+        val distanceX = ancestor.x - node.x
+        val distanceY = ancestor.y - node.y
+
+        val newCoord = Coord(node.x + distanceX.sign, node.y + distanceY.sign)
+        ropeSectionCoords[index] = newCoord
+    }
+
+    private fun headCoord() = ropeSectionCoords.first()
+    private fun tailCoord() = ropeSectionCoords.last()
 
     fun tailObservedAt(): Set<Coord> = tailObservedAt
-
-
-    override fun toString(): String {
-        val sb = StringBuilder()
-
-        val size = max(max(headCoord.x, headCoord.y), max(tailCoord.x, tailCoord.y)) + 1
-
-        for (x in 0 .. size) {
-            for (y in 0 .. size) {
-                val coord = Coord(x, y)
-                sb.append(when(coord) {
-                    headCoord -> "H"
-                    tailCoord -> "T"
-                    else -> "."
-                })
-            }
-            sb.append("\n")
-        }
-
-        return sb.toString()
-    }
 }
 
 data class Coord(val x: Int, val y: Int) {
